@@ -15,9 +15,12 @@ lut_jaspar_motifs_by_tf = {}
 lut_tfs_by_jaspar_motifs = {}
 
 for line in lines:
-    matchObj = re.search(r'>(.+) (.+)', line)
-    motif_value = matchObj.groups(1)[0]
-    tf =matchObj.groups(1)[1]
+    #matchObj = re.search(r'>(.+) (.+)+', line)
+    matchObj = re.search(r'>(M[\w\.]+)', line)
+    motif_value = matchObj.groups()[0]
+
+    #tf = matchObj.groups(1)[1]
+    tf = line.replace('>'+motif_value, "").strip()
     print "motif: " + motif_value + "     tf:" + tf
 
     lut_tfs_by_jaspar_motifs[motif_value] = tf
