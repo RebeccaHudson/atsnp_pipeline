@@ -65,7 +65,7 @@ Part 1:
  
          This is only needed one time if/whenever the whole elasticsearch index is rebuilt.
          Find the needed script in the directory: gene-names-pipeline 
-         As long as the data file 'geneTrack.refSeq.complete' is in the same directory you
+         As long as the data file 'correct-gencode-genes' is in the same directory you
          run the script out of (it's also in gene-names-pipeline).
 
          using it: python map-gene-names.py
