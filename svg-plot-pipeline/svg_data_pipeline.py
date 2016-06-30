@@ -15,7 +15,7 @@ in with no trailling space.
 DRY_RUN = False 
 
 def set_has_plot_flag_on_atsnp_output_doc(plot_info):
-    atsnp_data_search_url = 'http://atsnp-db3.biostat.wisc.edu:9200/atsnp_data/atsnp_output/_search'
+    atsnp_data_search_url = 'http://atsnp-db1.biostat.wisc.edu:9200/atsnp_data/atsnp_output/_search'
     q = { "query" : {
         "bool" : {
           "must" : [
