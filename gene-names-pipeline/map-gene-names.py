@@ -8,7 +8,7 @@ from elasticsearch import Elasticsearch, helpers
 def get_one_bulk_action_json(json_record):
     bulkj = {
     '_index': 'atsnp_data',
-    '_type' : 'gene_names',
+    '_type' : 'gencode_gene_symbols',
     '_source':  json_record 
     }
     return bulkj
@@ -16,10 +16,11 @@ def get_one_bulk_action_json(json_record):
 def put_bulk_json_into_elasticsearch(es, action):
     print "length of action : " + str(len(action))
     son = json.dumps(action)
-    result = helpers.bulk(es, action, index="atsnp_data", doc_type="gene_names")
+    #print son
+    result = helpers.bulk(es, action, index="atsnp_data", doc_type="gencode_gene_symbols")
     return result
 
-gene_map_file = 'geneTrack.refSeq.complete' 
+gene_map_file = 'correct-gencode-genes' 
 with open(gene_map_file) as f:
     lines = f.readlines()
 
@@ -30,15 +31,15 @@ es_chunk_size = 150
 i = 0
 for line in lines:
     split_line = line.split()
-    chromosome = split_line[0]
-    start_pos = split_line[1]
-    end_pos = split_line[2]
-    gene_name = split_line[3]
+    chromosome = split_line[2]
+    start_pos = split_line[4]
+    end_pos = split_line[5]
+    gene_symbol = split_line[12]
       
     j_dict = { "chr" : chromosome, 
                "start_pos" : start_pos, 
                "end_pos"   : end_pos,
-               "gene_name" : gene_name
+               "gene_symbol" : gene_symbol
              }
     action.append(j_dict)
     i = i + 1
