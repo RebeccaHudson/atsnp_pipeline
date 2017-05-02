@@ -21,45 +21,43 @@ Table of Contents:
 
 Part 1: 
 
-    A. PRIMARY pipeline from R data files to elasticsearch:
+    A. PRIMARY Data Pipeline from R data files to Elasticsearch:
 
-        What needs to happen to every numbered directory in JASPAR.
-            /afs/cs.wisc.edu/p/keles/DBSNP/JASPAR2/MERGE_SUBSET/
+        Each numbered directory for JASPAR and ENCODE data must be processed. 
+        These directories are located at the following locations:
+          /z/Comp/kelesgroup/atsnp/ENCODE/TABLES  and 
+          /z/Comp/kelesgroup/atsnp/JASPAR/TABLES 
 
-        Example of this working properly.
+        To use the pipeline scripts to ingest one of these; 
+           go into primary-data-pipeline/
+           
+          1.   Edit the path at the top of the file 'setup_jobs_and_dirs.py'
+               to be either the path for ENCODE or the path for JASPAR data.
+        
+          2.   Edit the settings in shared_pipe.py to adjust 
+                 * The number of 'chunks' to divide
+                   The work into (each 'chunk' will be worked on by one condor node);
+                 * The number of condor_submit files to ultimately submit.
+                   (chunks/number of submit files = 
+                    number of jobs running per condor cluster)
 
-        1. Grabbing a directory:
-          rsync -rvPh 
-             rhudson@ramiz01.stat.wisc.edu:/afs/cs.wisc.edu/p/keles/DBSNP/JASPAR2/MERGE_SUBSET/23
-             
-
-        2. Processing a directory into sqlite data:
-           python process_dir_of_Rdata.py 23
-
-             The script looks for data here: 
-              /z/Comp/kelesgroup/rhudson/R-pipeline/condor_pipe_data_from_MERGE_SUBSET
-              (was formerly:  /z/Comp/kelesgroup/rhudson/R-pipeline/data_from_MERGE_SUBSET/,
-               if you want to skip rsyncing each of the .Rdata files for JASPAR that are 
-               already copied, you can point the script at : 
-               /z/Comp/kelesgroup/rhudson/R-pipeline/data_from_MERGE_SUBSET )
-
-              The script now takes 1 argument, the number of the directory to process files from.
-              There will be 30 files per directory; 
-              a destination directory is created for the files loaded.
-              The destination directory for those 30 files will be: 
-                  /z/Comp/kelesgroup/rhudson/condor_jaspar_sqlite/sync23
-
-         
-        3. Processing a direcotory of sqlite data into elasticsearch: 
-           python elasticsearch_data_pipeline.py 
-                        /z/Comp/kelesgroup/rhudson/condor_jaspar_sqlite/sync23 
-              
-              This actually ingests data into elasticsearch.
-              IMORTANT NOTE: The elasticsearch ingestion script requires the elasticsearch 
-                          python clinet, I've been including it out of a virtualenv in 
-                          my home directory, I'm not sure where you would install it for condor.
-
-
+          2.   Make sure the working directory is clear of any chunk<N> directories or 
+               already-existing condor_submit files.
+        
+          3.   Run the script to setup_jobs_and_dirs: /s/bin/python setup_jobs_and_dirs.py
+ 
+          4.   If all of this has worked correctly, you should be able to submit 
+               the jobs to condor.     
+               For each condor submit file (condor-submit-N.sub) submit it to condor: 
+                 condor_submit condor-submit-N.sub   
+                             
+          4.  (CONDOR NOTE!  ):
+               (What about the condor version problems?)
+               Before sumbitting; check the condor version on the machine you are using.
+               use the program 'condor_version'
+               Look for a condor_version of 8.6 or greater to process successfully.                 
+               
+ 
 
     B.   Pipeline for gene names.
  
