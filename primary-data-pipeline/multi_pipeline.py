@@ -6,37 +6,14 @@ import socket
 import subprocess
 import string
 from sqlite2elasticsearch import run_single_file
+import shared_pipe
 
-#what's this for?:
-#Instead of each condor job trying to update the same progress file, 
-#each job should refer to a progress file in its own directory.
-#use setup_progress_files.py parent_dir N to prepare progress files.
-
-#used to track progress in progress files.
-pStates = { 'NOT_STARTED' : 0, 
-            'IN_PROGRESS' : 1, 
-            'COMPLETE'    : 2 }
-
+shared_pipe.init()
+pStates = shared_pipe.PROGRESS_STATES
 #ultimate goal.
-#parentDir = '/z/Comp/kelesgroup/atsnp/ENCODE/BIGTABLES'
 
-
-
-#if the lockfile at the specified path exists, 
-#wait for it to go away.
-def getLockOnFile(atPath):
-    while True:
-        if not os.path.isfile(atPath):
-           break 
-        else: 
-           readLock = open(atPath, "r")
-           workingHost = readLock.read()
-           print "lockfile at " + atPath + \
-                 " is still there. host=" + workingHost
-           readLock.close()
-           time.sleep(10)
-    createLockfile(atPath)
-
+which_lib = os.path.abspath('..').split('/')[-1] #must be either 'encode' or 'jaspar'
+parentDir = shared_pipe.PARENT_DIRS[which_lib]
 
 #used only when there's not yet a progress file
 def writeProgressFile(openFile):
@@ -51,7 +28,6 @@ def writeProgressFile(openFile):
               oneLine = " ".join([fpath, str(pStates['NOT_STARTED']), "\n"])
               openFile.write(oneLine)
     print "fileCount: " + str(fileCount)
-     
 
 #if this function fails, the R script's output has been changed  
 def siftROutput(rResult):
@@ -67,7 +43,6 @@ def siftROutput(rResult):
     #print "output filename : " + outfileName
     return { "row_count" : rowCount,
              "outfile_name" : outfileName }
-
 
 #update the progress file to indicate what work is being done.
 def analyzeProgressFile(progPath):
@@ -163,13 +138,11 @@ def processOneFile(pathToFile, jobLogFile):
                       'es_rejected' : elastic_rows['rejected'],  
                       'other'      : elastic_rows['other'] }
                        #duplicates are rejected!
-    #jobLogFile = open('joblog.txt', 'ar+')
     jobLogFile.write("cleaning up file at " + workingPath +"\n")
     jobLogFile.write("cleaning up sqlite file at " + sqliteFile +"\n")
     os.remove(sqliteFile)
     os.remove(workingPath)
     return oneFileCounts  #summary contanis 'added' and 'rejected' keys
-   
  
 jobLogFile = open('joblog.txt', 'ar+')
 jobLogFile.write("beginnig to run pipeline on " + socket.gethostname() + "\n")
