@@ -7,6 +7,7 @@ import sys
 import requests
 import os
 import zlib
+import math
 """
 A script to import sqlite3 tables into Elasticsearch
 To use: give it one argument: the name of the directory to find the input files
