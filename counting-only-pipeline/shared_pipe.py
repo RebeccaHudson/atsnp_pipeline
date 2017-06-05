@@ -33,14 +33,5 @@ def init():
     #                  'HERON'      : [ 0.5 ,  0.5,  0.5  ], 
     #                  'CRANE'      : [ 0.5 ,  None, None ] 
     #                }
-    NAMED_CUTOFFS = { 'SWALLOW'  : 0.1, 
-                      'TEAL'     : 0.12,  
-                      'LARK'     : 0.13, 
-                      'FLICKER'  : 0.14, 
-                      'WARBLER'  : 0.15, 
-                      'TERN'     : 0.16,
-                      'THRUSH'   : 0.17, 
-                      'SWITF'    : 0.18,
-                      'PINTAIL'  : 0.19,  
-                      'RAVEN'    : 0.20,
-                      'OWL'      : 0.25  } 
+    NAMED_CUTOFFS = { 'SWALLOW'  : 0.03, 
+                      'RAVEN'    : 0.05 }
