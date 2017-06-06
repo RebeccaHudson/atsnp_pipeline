@@ -36,7 +36,7 @@ def init():
 
 
    #TABLES OR BIGTABLES
-   set_of_data = 'TABLES'
+   set_of_data = 'BIGTABLES'
    data_root = '/z/Comp/kelesgroup/atsnp'
    PARENT_DIRS = {'encode':'/'.join([data_root,'ENCODE',set_of_data,'593']),
                   'jaspar':'/'.join([data_root,'JASPAR',set_of_data,'151'])
