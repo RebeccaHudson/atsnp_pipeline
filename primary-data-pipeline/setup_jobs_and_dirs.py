@@ -16,8 +16,8 @@ def get_file_list(path):
    fList = [] 
    for dirName, subdirList, fileList in os.walk(parentDir):
        for fname in sorted(fileList): 
-            #if re.match("bigdb_\d+_\d+.*RData$", fname):
-            if re.match("db_\d+_\d+.*RData$", fname):
+            if re.match("bigdb_\d+_\d+.*RData$", fname):
+            #if re.match("db_\d+_\d+.*RData$", fname):
               fileCount += 1
               fpath = "/".join([dirName, fname])
               fList.append(fpath)
