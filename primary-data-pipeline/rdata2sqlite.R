@@ -40,11 +40,12 @@ process_one_file_of_Rdata <- function(path_to_input_file, output_dir){
   #print(paste("Loading data file from : ", path_to_input_file)) 
   load(path_to_input_file, verbose=TRUE) 
 
-  #not using 'bigtables' data now, just using 'tables'
-  #print(paste("writing N rows, where N=", nrow(atsnp.bigtables)))
-  #data_to_write <- as.data.frame(atsnp.bigtables) 
-  print(paste("writing N rows, where N=", nrow(atsnp.tables)))
-  data_to_write <- as.data.frame(atsnp.tables) 
+  print(paste("writing N rows, where N=", nrow(atsnp.bigtables)))
+  data_to_write <- as.data.frame(atsnp.bigtables) 
+
+  #not using 'tables' data now, just using 'bigtables'
+  #print(paste("writing N rows, where N=", nrow(atsnp.tables)))
+  #data_to_write <- as.data.frame(atsnp.tables) 
   dbWriteTable(open_db, 'scores_data', data_to_write, overwrite=TRUE) 
   dbDisconnect(open_db)
 }
