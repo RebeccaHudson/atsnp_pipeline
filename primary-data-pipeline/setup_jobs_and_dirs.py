@@ -3,13 +3,26 @@ import shutil
 import os.path
 import re
 import shared_pipe
+from shared_pipe import WhichTFLibs
 import sys
-
+from subprocess import call
+import subprocess
 # What does this file do? 
 # Breaks up the whole colletion of files into N directories.
 # Creating a seperate condor submit file for each batch of rangeSize directories
 shared_pipe.init()
 parentDir = shared_pipe.PARENT_DIR
+
+import os, grp
+
+def get_effective_group():
+    eguid = os.getegid()
+    return grp.getgrgid(eguid).gr_name
+if get_effective_group() != 'atsnp':
+    print "STOP! Configure permissions by running this command: './setup_shell.sh'"
+    print "(Your user is supposed to have the primary group 'atsnp' active.)"
+    sys.exit(1)
+
 
 def get_file_list(path):
    fileCount = 0 
@@ -113,33 +126,15 @@ def setupCondorSubmitFiles(tf_library):
         submitFile.close()
 
 
-#Uses the command line arguments to determine which datasets are run.
-def which_datasets():
-    run_these = []
-    print "sys.argv  " + repr(sys.argv)
-    print "len(sys.argv)" +  str(len(sys.argv))
-    if len(sys.argv) >= 2 and len(sys.argv) <= 3:
-       sets_to_run = sys.argv[1:]
-       while len(sets_to_run) > 0:
-           g = sets_to_run.pop()
-           print "g: " + g
-           if str.upper(g) not in ['ENCODE', 'JASPAR']:
-               msg = "The only valid arguments are 'encode' and/or 'jaspar'\
-                   (case insensitive). \n Enter 'jaspar' or 'encode' or both."
-               print msg
-               exit(1)
-           else:
-               run_these.append(str.lower(g))
-    if len(run_these) == 0:
-        print "Missing transcription factor library agrument(s).\n" + \
-           "Specify encode or jaspar libraries to setup data loading for."
-        exit(1)
-    return run_these
-
 #Is setting up directores for JASPAR or ENCODE. or both. 
 #You will have to manually delete the directories to overwrite them.
-libs_to_run = which_datasets()
+print "Is this working?"
+no_arg_msg = "Missing transcription factor library agrument(s).\n" + \
+             "Specify encode or jaspar libraries to setup data loading for."
+libs_to_run = WhichTFLibs(sys.argv, no_arg_msg).run_these
+
 ready = []; skipped = []
+
 print "running these guys : " + repr(libs_to_run)  
 for one_of_them in libs_to_run:
     parentDir = shared_pipe.PARENT_DIRS[one_of_them]
@@ -163,7 +158,8 @@ if len(skipped) > 0:
     print "Passed over requested setup for " + passed_over +\
           " due to processing files still sitting around."
 
-
+print "exiting.."
+exit(0)
 
 
 
