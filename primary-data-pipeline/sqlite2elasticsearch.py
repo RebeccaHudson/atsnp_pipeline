@@ -204,8 +204,9 @@ def process_one_file_of_input_data(path_to_file, es, elasticLog):
         i += 1
         json_data =   \
            parse_one_sqilte_row_into_json_data(colnames, one_sqlite_record, elasticLog)
-        print repr(json_data)
-        print "check that this record makes sense"
+        # huge amount of data printed w/ the following
+        # print repr(json_data)
+        #print "check that this record makes sense"
         #Now, check that the decompress record method works.
         actions.append(json_data)  
         if i % bulk_loading_chunk_size == 0:
