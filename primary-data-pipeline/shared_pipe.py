@@ -14,7 +14,7 @@ def init():
 
    #Numeric settings tailored for test data sets.
    SETTINGS = {
-        'chunk_count': 10,
+        'chunk_count':10, 
         'n_submit_files' : 2 #number of separate condor submit files.
    }  
    #Should match the definition in the per-job scripts;
@@ -36,19 +36,27 @@ def init():
 
 
    #TABLES OR BIGTABLES
-   set_of_data = 'BIGTABLES'
+   set_of_data = 'BIGTABLES' #BIGTABLES is needed (vs. TABLES).
    data_root = '/z/Comp/kelesgroup/atsnp'
+   #data_root = '/z/Comp/kelesgroup/rhudson/tiny-test'  #MEGA test mode.
    PARENT_DIRS = {'encode':'/'.join([data_root,'ENCODE',set_of_data,'593']),
                   'jaspar':'/'.join([data_root,'JASPAR',set_of_data,'151'])
                  }
 
-   #Vision for this: 
-   #setup_jobs_and_dirs encode
-     #move everything needed into the 'encode' directory.
-   #setup the jobs and directories to run in there. 
-   #condor sumibt files get put in primary_pipeline/encode
-   #
-
+#assumes error (red)
+def print_with_color(msg, why='error'):
+    end_color = "\033[1;m"
+    start_color = "\033[1;33m" #default to yellow if reason is unspecified.
+    if why == 'error':    
+        print "\033[1;41mSTOP" + end_color #\033[1;m"
+        start_color = "\033[1;31m"
+    elif why == 'success': 
+        start_color = "\033[1;32m" #green    
+    elif why == 'warn':
+        print '\033[1;43mWARN\033[1;m'
+        pass #go with the yellow. 
+    print ''.join([start_color, msg, end_color])
+    
    
 #Add another transcription factor library down here too. 
 class WhichTFLibs:
@@ -62,26 +70,24 @@ class WhichTFLibs:
 
     def which_datasets(self, cmd_args, msg_for_no_args):
         run_these = []
-        #print "sys.argv  " + repr(cmd_args)
-        #print "len(sys.argv)" +  str(len(cmd_args))
         if len(cmd_args) >= 2 and len(cmd_args) <= 3:
            sets_to_run = cmd_args[1:]
            while len(sets_to_run) > 0:
                g = sets_to_run.pop()
                if str.lower(g) not in self.valid_args: 
-                   msg = "The only valid arguments are 'encode' and/or 'jaspar'\
-                       (case insensitive). \n Enter 'jaspar' or 'encode' or both."
-                   print msg
+                   msg = "The only valid arguments are 'encode' and/or "+\
+                         "'jaspar' (case insensitive). \n Enter 'jaspar' or"+\
+                         " 'encode' or both."
+                   #print msg
+                   print_with_color(msg)
                    exit(1)
                else:
                    run_these.append(str.lower(g))
         if len(run_these) == 0:
             if msg_for_no_args is not None:
-                print msg_for_no_args
+                print_with_color(msg_for_no_args)
                 exit(1)
             run_these = self.valid_args 
         return run_these
-
-
 
 

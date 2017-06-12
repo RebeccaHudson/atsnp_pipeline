@@ -27,7 +27,7 @@ def writeProgressFile(openFile):
               fpath = "/".join([dirName, fname])
               oneLine = " ".join([fpath, str(pStates['NOT_STARTED']), "\n"])
               openFile.write(oneLine)
-    print "fileCount: " + str(fileCount)
+    #print "fileCount: " + str(fileCount)
 
 #if this function fails, the R script's output has been changed  
 def siftROutput(rResult):
@@ -82,6 +82,18 @@ def analyzeProgressFile(progPath):
             "fileToProcess" : filePicked }
        #DONE when fileToProcess is None.
 
+def buildLineForCompletedFile(allCounts):
+   countsLine = ""#"rdata: " + str(allCounts['rdata'])
+   countsToCheck = ['rdata', 'es_added', 'es_skipped', 'other']
+   for onecount in countsToCheck:
+       countsLine += ' '.join([onecount, str(allCounts[onecount])])
+       countsLine += " " 
+   #counts += "es_added" + str(allCounts['es_added'])
+   #counts += "es_skipped " + str(allCounts['es_rejected'])
+   #counts += "other? : " + str(allCounts['other']) #should be EMPTY!
+   #print "going to represent counts like this: " + countsLine
+   return countsLine
+
 
 def markOneFileAsComplete(progPath, pathToFile, allCounts, jobLogFile):
    #mark the file as complete 
@@ -89,10 +101,12 @@ def markOneFileAsComplete(progPath, pathToFile, allCounts, jobLogFile):
    tempFilePath  = progPath + socket.gethostname() + '.tmp'
    tempFile = open(tempFilePath ,'w')
    progFile = open(progPath,  'r')
-   counts = "rdata: " + str(allCounts['rdata'])
-   counts += " elastic added " + str(allCounts['es_added'])
-   counts += " elastic rejected " + str(allCounts['es_rejected'])
-   counts += " other? : " + str(allCounts['other'])
+
+   #the text to record the numeric counts from processing each file.
+   #print "in markOneFileAsComplete."
+   #print "allCounts before calling buildLineForCompletedFile: " + repr(allCounts)
+   counts = buildLineForCompletedFile(allCounts)
+
    #add line count data to the COMPLETE line
    for line in progFile:
        terms = line.split(" ")
@@ -118,25 +132,39 @@ def processOneFile(pathToFile, jobLogFile):
     if not os.path.exists(localWorkingDir):
         os.makedirs(localWorkingDir)
     rDataFile = os.path.basename(pathToFile)
+
     workingPath = os.path.join(localWorkingDir, rDataFile)
+    #print "workingPath " + workingPath
+    #if not os.path.exists(workingPath):
     jobLogFile.write( "copying file : " + pathToFile + " to : " + \
                        workingPath + "\n")
-
     shutil.copy(pathToFile, workingPath)
-    #print "copied field at workingPath"
+
+    sqliteFile = os.path.splitext(rDataFile)[0] + '.db'
+    #print "sqliteFile " + sqliteFile
+    sqliteFilePath = os.path.join(localWorkingDir, sqliteFile )
+    #print "sqliteFilePath " + sqliteFilePath
+    #skip creating the file if its already here.
+    #if not os.path.exists(sqliteFilePath):
     cmd = " ".join(['/s/bin/Rscript', 'rdata2sqlite.R', 
                     workingPath, localWorkingDir])
-
     result = subprocess.check_output(cmd, shell=True)
     r_output = siftROutput(result)
     rows_from_rdata = r_output["row_count"]
     sqliteFile =  r_output["outfile_name"]
+    #else:
+    #    print "hooray, skipped re-creating the sqilte file." 
+
+    #print "sqliteFile now " + sqliteFile
     jobLogFile.write("rows processed by RScript: " + str(rows_from_rdata)+"\n")
+
     elastic_rows = run_single_file(sqliteFile)
+    #print "elastic_rows: " + repr(elastic_rows)
     oneFileCounts = { 'rdata'    :  rows_from_rdata,
                       'es_added' :  elastic_rows['added'],
-                      'es_rejected' : elastic_rows['rejected'],  
+                      'es_skipped': elastic_rows['skipped'],
                       'other'      : elastic_rows['other'] }
+                       #'es_rejected' : elastic_rows['rejected'],  
                        #duplicates are rejected!
     jobLogFile.write("cleaning up file at " + workingPath +"\n")
     jobLogFile.write("cleaning up sqlite file at " + sqliteFile +"\n")

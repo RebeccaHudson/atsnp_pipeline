@@ -35,7 +35,7 @@ def build_unique_id_for_es_document(record_dict):
 
 def update_summary_counts(summary_chunk, total_summary):
     total_summary['added'] += summary_chunk['added']
-    total_summary['rejected'] += summary_chunk['rejected']
+    total_summary['skipped'] += summary_chunk['skipped']
     total_summary['other'] += summary_chunk['other']
     return total_summary
 
@@ -156,7 +156,7 @@ def pick_seq_start_and_end(dict_data):
 #not  using helpers.bulk; segmentation is now manual
 def put_bulk_json_into_elasticsearch(es, action_list, elasticLog):
     result = None 
-    summary = { 'added' : 0, 'rejected': 0, 'other': 0 }
+    summary = { 'added' : 0, 'skipped': 0, 'other': 0 }
     #duplicate records will be rejected
     if DRY_RUN is False:
         try:
@@ -168,7 +168,7 @@ def put_bulk_json_into_elasticsearch(es, action_list, elasticLog):
         for item in result['items']:
             action_status = item['create']['status']
             if action_status == 409: 
-                summary['rejected'] += 1
+                summary['skipped'] += 1
             elif action_status == 201:
                 summary['added'] += 1
             elif action_status == 429:
@@ -194,7 +194,7 @@ def process_one_file_of_input_data(path_to_file, es, elasticLog):
     sqlite_cursor.execute("SELECT * FROM " + sqlite_table_name )
     colnames = get_colnames_for_sqlite_table(sqlite_cursor)
 
-    summary = { 'added' : 0, 'rejected': 0, 'other': 0 }
+    summary = { 'added' : 0, 'skipped': 0, 'other': 0 }
     i = 0
     bulk_loading_chunk_size = 20000  #TODO: crank up this chunk size
     one_sqlite_record = sqlite_cursor.fetchone() 
@@ -230,7 +230,7 @@ def run_single_file(filepath):
                         timeout=200, 
                         dead_timeout=100)
     summary = process_one_file_of_input_data(filepath, es, elasticLog)
-    rowcount = summary['added'] + summary['rejected'] + summary['other']
+    rowcount = summary['added'] + summary['skipped'] + summary['other']
     elasticLog.write( "completed file: " + filepath + " with N= " + \
                       str(rowcount) + " rows of data.\n")
     elasticLog.close()

@@ -1,9 +1,9 @@
-import os
+import os, grp
 import shutil
 import os.path
 import re
 import shared_pipe
-from shared_pipe import WhichTFLibs
+from shared_pipe import WhichTFLibs, print_with_color
 import sys
 from subprocess import call
 import subprocess
@@ -13,14 +13,17 @@ import subprocess
 shared_pipe.init()
 parentDir = shared_pipe.PARENT_DIR
 
-import os, grp
-
+#The following code is used to ensure that directories created by this 
+#script can be deleted by other users in the group 'atsnp'.
+#(Thanks to William Annis at biostat sysreq for the following code.)
 def get_effective_group():
     eguid = os.getegid()
     return grp.getgrgid(eguid).gr_name
+
 if get_effective_group() != 'atsnp':
-    print "STOP! Configure permissions by running this command: './setup_shell.sh'"
-    print "(Your user is supposed to have the primary group 'atsnp' active.)"
+    msg = "Configure permissions by running this command: './setup_shell.sh'" +\
+          "\n(Your user is supposed to have the primary group 'atsnp' active.)"
+    print_with_color(msg)
     sys.exit(1)
 
 
@@ -36,23 +39,26 @@ def get_file_list(path):
               fList.append(fpath)
    return fList
 
-def create_dir_or_fail(dirname, msg):
+def create_dir_or_fail(dirname):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
         return True
     else:
-        print msg
+        # this is reported at least 3 times.. print msg
         return False
 
 #Copies source for all per-job scripts and segments of the overall list 
 #of files to transfer.
 def setupJobDirs(jaspar_or_encode, input_path):
-    msg  = ' '.join(['Directory',jaspar_or_encode,'already exists.',
-                    'Delete this directory to use this script.'])
+    #msg  = ' '.join(['Directory',jaspar_or_encode,'already exists.',
+    #                'Delete this directory to use this script.'])
     #Don't proceed in creating directories if the parent' isn't in.
-    if not create_dir_or_fail(jaspar_or_encode, msg):
-        print "Not setting up anything for " + jaspar_or_encode + \
-              " because it already exists."
+    #if not create_dir_or_fail(jaspar_or_encode, msg):
+    if not create_dir_or_fail(jaspar_or_encode):
+        #msg =  "Not setting up anything for " + jaspar_or_encode + \
+        #      " because it already exists."
+        #print_with_color(msg, why='warn')
+        #Don't need to repeatedly report the same darn error.
         return False
 
     #Message to fail with if some interesting data may be left over.
@@ -65,11 +71,12 @@ def setupJobDirs(jaspar_or_encode, input_path):
                     'sqlite2elasticsearch.py']
     for i in range(0, shared_pipe.SETTINGS['chunk_count']): 
         jobDir = '/'.join([jaspar_or_encode,'chunk' + str(i).zfill(2)])
-        if not create_dir_or_fail(jobDir, msg):
+        if not create_dir_or_fail(jobDir):
             return False #fail early, make the operator delete these.
         for oneFile in filesToCopy:
             shutil.copyfile(oneFile, jobDir + "/" + oneFile)
 
+    print "getting file list at this path " + input_path
     fList = get_file_list(input_path)    
     chunk_size = len(fList) /    \
                 (shared_pipe.SETTINGS['chunk_count'] - 1)
@@ -128,39 +135,32 @@ def setupCondorSubmitFiles(tf_library):
 
 #Is setting up directores for JASPAR or ENCODE. or both. 
 #You will have to manually delete the directories to overwrite them.
-print "Is this working?"
 no_arg_msg = "Missing transcription factor library agrument(s).\n" + \
-             "Specify encode or jaspar libraries to setup data loading for."
+             "Specify encode and/or jaspar libraries to setup data loading for."
 libs_to_run = WhichTFLibs(sys.argv, no_arg_msg).run_these
-
 ready = []; skipped = []
 
-print "running these guys : " + repr(libs_to_run)  
+#print "running these guys : " + repr(libs_to_run)  
 for one_of_them in libs_to_run:
     parentDir = shared_pipe.PARENT_DIRS[one_of_them]
     print "Setting up directories and submit files for: " + parentDir 
     if not setupJobDirs(one_of_them, parentDir):
-        print "Stuff is hanging around for " + one_of_them + \
-              " not setting it up."
         skipped.append(one_of_them)
         continue
     ready.append(one_of_them)         
     setupCondorSubmitFiles(one_of_them)
 
-
-
 if len(ready) > 0:
     to_run = ' and '.join(ready)
-    print "Job directories have been setup. Ready to go for " + to_run
-
+    msg = "Job directories have been setup. Ready to go for " + to_run
+    print_with_color(msg, why='success')
 if len(skipped) > 0:
     passed_over = ' and '.join(skipped)
-    print "Passed over requested setup for " + passed_over +\
-          " due to processing files still sitting around."
+    msg= "Passed over setup for " + passed_over +\
+          " because this/these folder(s) already exist\n Delete these " +\
+          "directories to proceed with setting up, BUT: be sure that\n" +\
+          "you are not removing an in-progress run that should continue."
+    print_with_color(msg, why='warn')
 
-print "exiting.."
 exit(0)
-
-
-
 
