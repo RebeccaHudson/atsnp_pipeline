@@ -38,13 +38,13 @@ def addCountsFromOneLine(terms, summary):
 
     if status == 'COMPLETE':
         specific_counts = terms[2:]
-        print "specific counts: " + repr(specific_counts)
+        #print "specific counts: " + repr(specific_counts)
         i = 0
         while i < len(specific_counts):
            value_called = specific_counts[i]
-           print "value called " + value_called
+           #print "value called " + value_called
            value = int(specific_counts[i+1].replace(':', ''))
-           print "value : "  + str(value)
+           #print "value : "  + str(value)
            summary[value_called] += value
            i += 2 
     return summary 
@@ -138,8 +138,10 @@ overallSummary = getEmptyCounts()
 
 for one_data_set in libs_to_run:
     print ' '.join(["\n\tRunning status check for",one_data_set,"...."])
-    checkAllDirs(one_data_set)
-msg = "Completed the status check!" +\
-      "\nFor more detailed information, see progress.txt in this directory."
+    if os.path.exists(one_data_set): 
+        checkAllDirs(one_data_set)
+    else:
+        msg= "Skipped status check for " + one_data_set + ". Its not there."
+        print_with_color(msg, why='warn')
 print_with_color(msg, why='success')
 
