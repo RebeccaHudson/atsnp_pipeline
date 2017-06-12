@@ -1,0 +1,4 @@
+*.pyc
+progress.txt
+encode/
+jaspar/
