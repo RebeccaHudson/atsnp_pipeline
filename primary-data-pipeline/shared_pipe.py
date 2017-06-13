@@ -53,7 +53,7 @@ def print_with_color(msg, why='error'):
     elif why == 'success': 
         start_color = "\033[1;32m" #green    
     elif why == 'warn':
-        print '\033[1;43mWARN\033[1;m'
+        print '\033[1;43mWARN' + end_color
         pass #go with the yellow. 
     print ''.join([start_color, msg, end_color])
     

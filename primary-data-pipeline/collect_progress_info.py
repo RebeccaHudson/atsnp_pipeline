@@ -143,5 +143,7 @@ for one_data_set in libs_to_run:
     else:
         msg= "Skipped status check for " + one_data_set + ". Its not there."
         print_with_color(msg, why='warn')
+
+msg = "Completed status check"
 print_with_color(msg, why='success')
 
