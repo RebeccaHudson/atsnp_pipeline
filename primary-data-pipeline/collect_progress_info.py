@@ -83,6 +83,21 @@ def update_overall_counts(overallSummary, dirResults):
         overallSummary[one_count] += dirResults[one_count]
     return overallSummary
 
+
+#There's a cleaner, more pythonic way to do this.
+#(I'd rather have a list than a dict, as it's inherently ordered)
+def setup_list_of_submit_files(how_many_submit_files):
+    return [False for i in range(0, how_many_submit_files)]
+
+def show_which_batches_are_done(batches):
+    for i, one_batch in enumerate(batches):
+        msg = "\tStatus for batch launched by submit file " + str(i) + " is:"
+        if one_batch is True:
+            msg += " complete"    
+        else: 
+            msg += " incomplete."
+        print msg
+   
 #This is assuming that we are running the submit files in order.
 #(Dangerous assumption: working now on a simple fix.)
 def checkAllDirs(parent):
@@ -98,16 +113,29 @@ def checkAllDirs(parent):
     #data sets are being checked.
 
     overallSummary = getEmptyCounts()
-
+    k = 0; completeDirsForBatch = 0 #k counts directories per batch.
+    whichBatch = 0 
+    batches = setup_list_of_submit_files(shared_pipe.SETTINGS['n_submit_files'])
+     
     for i in range(0, shared_pipe.SETTINGS['chunk_count']):
         dirName = '/'.join([parent, 'chunk' + str(i).zfill(2)])
         dirResults = checkOneDirectory(dirName)
         overallSummary = update_overall_counts(overallSummary, 
                                                dirResults['summary'])
         overallProgressFile.writelines(dirResults['fileLines'])
-
+        k += 1 #This will get reset once per batch.
         if checkForCompleteDir(dirResults['summary']):
             completedDirs += 1 
+            completeDirsForBatch += 1 
+
+        #Turn over all per-batch calculations.
+        if k == submitSize: 
+            if completeDirsForBatch == submitSize: 
+                batches[whichBatch] = True        
+            k = 0; completeDirsForBatch = 0; whichBatch += 1 
+
+    show_which_batches_are_done(batches)
+
 
     print "\tcompleted " + str(completedDirs) + " out of " + \
           str(shared_pipe.SETTINGS['chunk_count']) + " directories"
