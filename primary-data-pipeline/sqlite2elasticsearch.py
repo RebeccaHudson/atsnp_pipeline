@@ -8,6 +8,20 @@ import requests
 import os
 import zlib
 import math
+
+import shared_pipe
+
+shared_pipe.init()
+pStates = shared_pipe.PROGRESS_STATES
+cutoffs = shared_pipe.PVALUE_CUTOFFS
+use_cutoffs = shared_pipe.RESTRICT_BY_PVALUE
+
+
+#SHOULD NOT CHANGE:
+sqlite_table_name = 'scores_data'
+
+
+
 """
 A script to import sqlite3 tables into Elasticsearch
 To use: give it one argument: the name of the directory to find the input files
@@ -38,6 +52,10 @@ def update_summary_counts(summary_chunk, total_summary):
     total_summary['skipped'] += summary_chunk['skipped']
     total_summary['other'] += summary_chunk['other']
     return total_summary
+
+
+
+
 
 #This method took hours to write, could not make the ES bulk helper 
 #accept specific IDs on documents. Ended up using the 5/5/16 answer from:
@@ -186,15 +204,58 @@ def put_bulk_json_into_elasticsearch(es, action_list, elasticLog):
                                   str(item)+"\n" )
     return summary 
 
+
+#Used for obtaining counts
+def setup_cutoffs_clause():
+    clause = " WHERE "
+    clause_parts = []
+    for pvalue in cutoffs.keys():
+        clause_parts.append(' '.join([pvalue, '<=', str(cutoffs[pvalue])]))
+    clause += ' OR '.join(clause_parts)
+    return clause 
+
+#use cutoffs will matter for this.
+def setup_query_to_pull_records():
+    query = "SELECT * FROM " + sqlite_table_name 
+    if use_cutoffs:  #setup at the top of the file.
+        query += setup_cutoffs_clause()
+        #append the where clause.
+    query += ";"
+    print "pulling records w: " + query
+    return query 
+
+#Used for obtaining verification counts of data that matches our cutoffs
+#prior to any loading into Elasticsearch.
+def setup_count_query():
+    query = ' '.join(["SELECT COUNT(*) FROM",sqlite_table_name,\
+                     setup_cutoffs_clause(), ';'])
+    print "counting with the following query: " + query
+    return query
+      
+def get_count_matching_cutoffs(sqlite_cursor):
+    query = setup_count_query()
+    sqlite_cursor.execute(query)
+    result = sqlite_cursor.fetchone()[0]
+    print "this many results within the cutoff: " + str(result)
+    return result
+ 
 def process_one_file_of_input_data(path_to_file, es, elasticLog):
     sqlite_file  = path_to_file 
-    sqlite_table_name = 'scores_data'
+    #sqlite_table_name = 'scores_data'
+    #sqlite_cursor.execute("SELECT * FROM " + sqlite_table_name )
 
+    #get counts for sqlite
     sqlite_cursor = connect_to_sqlite_db(sqlite_file)
-    sqlite_cursor.execute("SELECT * FROM " + sqlite_table_name )
+  
+    count_matching_cutoff = 0  #different if we are using cutoffs
+    if use_cutoffs:
+        #TODO: Must handle this somewhere.
+        count_matching_cutoff = get_count_matching_cutoffs(sqlite_cursor)
+     
+    sqlite_cursor.execute(setup_query_to_pull_records())
     colnames = get_colnames_for_sqlite_table(sqlite_cursor)
-
-    summary = { 'added' : 0, 'skipped': 0, 'other': 0 }
+    summary = { 'added' : 0, 'skipped': 0, 'other': 0, 
+                'matches_pval_cutoff': count_matching_cutoff }
     i = 0
     bulk_loading_chunk_size = 20000  #TODO: crank up this chunk size
     one_sqlite_record = sqlite_cursor.fetchone() 

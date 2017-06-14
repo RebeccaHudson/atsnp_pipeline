@@ -22,8 +22,10 @@ def getEmptyCounts():
     shared_pipe.init()
     #The status 'es_skipped' should ALWAYS indicate that a record with that
     #ID was already present in the Elasticsearch index.
+        #cutoff total is the number of records that meets the pvalue cutoff.
+        #if pvalue cutoffs are disable, this number will be 0.
     counts = ['COMPLETE', 'IN_PROGRESS', 'NOT_STARTED',
-              'rdata', 'es_added', 'es_skipped', 'other']
+              'rdata', 'cutoff_total', 'es_added', 'es_skipped', 'other']
     return dict.fromkeys(counts, 0)
 
 
@@ -90,13 +92,16 @@ def setup_list_of_submit_files(how_many_submit_files):
     return [False for i in range(0, how_many_submit_files)]
 
 def show_which_batches_are_done(batches):
+    doneBatches = 0
     for i, one_batch in enumerate(batches):
         msg = "\tStatus for batch launched by submit file " + str(i) + " is:"
         if one_batch is True:
             msg += " complete"    
+            doneBatches += 1
         else: 
             msg += " incomplete."
         print msg
+    return doneBatches
    
 #This is assuming that we are running the submit files in order.
 #(Dangerous assumption: working now on a simple fix.)
@@ -113,7 +118,7 @@ def checkAllDirs(parent):
     #data sets are being checked.
 
     overallSummary = getEmptyCounts()
-    k = 0; completeDirsForBatch = 0 #k counts directories per batch.
+    k = 0; completeDirsForBatch = 0 #k counts directories in a batch.
     whichBatch = 0 
     batches = setup_list_of_submit_files(shared_pipe.SETTINGS['n_submit_files'])
      
@@ -128,22 +133,16 @@ def checkAllDirs(parent):
             completedDirs += 1 
             completeDirsForBatch += 1 
 
-        #Turn over all per-batch calculations.
+        #End of batch turn over all per-batch calculations.
         if k == submitSize: 
             if completeDirsForBatch == submitSize: 
                 batches[whichBatch] = True        
             k = 0; completeDirsForBatch = 0; whichBatch += 1 
 
-    show_which_batches_are_done(batches)
-
-
+    how_many_complete_batches = show_which_batches_are_done(batches)
     print "\tcompleted " + str(completedDirs) + " out of " + \
-          str(shared_pipe.SETTINGS['chunk_count']) + " directories"
-
-    #This should be more sophisticated than a simple count.
-    #Write up an algorithm.
-    completedChunks = completedDirs / submitSize
-    print "\tcompleted " + str(completedChunks) + " out of " +\
+          str(shared_pipe.SETTINGS['chunk_count']) + " directories."
+    print "\tcompleted " + str(how_many_complete_batches) + " out of " +\
           str(shared_pipe.SETTINGS['n_submit_files']) + " submit files."
 
     #pretty sure that we should use the submit file called 'completedChunks' next.

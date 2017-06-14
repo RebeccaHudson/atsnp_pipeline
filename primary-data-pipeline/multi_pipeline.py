@@ -10,24 +10,28 @@ import shared_pipe
 
 shared_pipe.init()
 pStates = shared_pipe.PROGRESS_STATES
-#ultimate goal.
+cutoffs = shared_pipe.PVALUE_CUTOFFS
+use_cutoffs = shared_pipe.RESTRICT_BY_PVALUE
 
-which_lib = os.path.abspath('..').split('/')[-1] #must be either 'encode' or 'jaspar'
-parentDir = shared_pipe.PARENT_DIRS[which_lib]
 
+#which_lib = os.path.abspath('..').split('/')[-1] #must be either 'encode' or 'jaspar'
+#parentDir = shared_pipe.PARENT_DIRS[which_lib]
 #used only when there's not yet a progress file
-def writeProgressFile(openFile):
-    fileCount = 0
-    #make a list in a file of the files to work with.
-    #TODO: remove the clockouts at n = 200
-    for dirName, subdirList, fileList in os.walk(parentDir):
-        for fname in fileList: 
-            if re.match(".*RData$", fname):
-              fileCount += 1
-              fpath = "/".join([dirName, fname])
-              oneLine = " ".join([fpath, str(pStates['NOT_STARTED']), "\n"])
-              openFile.write(oneLine)
-    #print "fileCount: " + str(fileCount)
+#THIS script does not setup a progress file.
+#def writeProgressFile(openFile):
+#    fileCount = 0
+#    #make a list in a file of the files to work with.
+#    #TODO: remove the clockouts at n = 200
+#    for dirName, subdirList, fileList in os.walk(parentDir):
+#        for fname in fileList: 
+#            if re.match(".*RData$", fname):
+#              fileCount += 1
+#              fpath = "/".join([dirName, fname])
+#              oneLine = " ".join([fpath, str(pStates['NOT_STARTED']), "\n"])
+#              openFile.write(oneLine)
+#    #print "fileCount: " + str(fileCount)
+
+
 
 #if this function fails, the R script's output has been changed  
 def siftROutput(rResult):
@@ -84,7 +88,9 @@ def analyzeProgressFile(progPath):
 
 def buildLineForCompletedFile(allCounts):
    countsLine = ""#"rdata: " + str(allCounts['rdata'])
-   countsToCheck = ['rdata', 'es_added', 'es_skipped', 'other']
+   #cutoff_total is the nuumber of records that matched the cutoff; 
+   #   this total is returned from a query of the sqlite3 temp file.
+   countsToCheck = ['rdata', 'cutoff_total', 'es_added', 'es_skipped', 'other']
    for onecount in countsToCheck:
        countsLine += ' '.join([onecount, str(allCounts[onecount])])
        countsLine += " " 
@@ -160,10 +166,14 @@ def processOneFile(pathToFile, jobLogFile):
 
     elastic_rows = run_single_file(sqliteFile)
     #print "elastic_rows: " + repr(elastic_rows)
-    oneFileCounts = { 'rdata'    :  rows_from_rdata,
-                      'es_added' :  elastic_rows['added'],
-                      'es_skipped': elastic_rows['skipped'],
-                      'other'      : elastic_rows['other'] }
+
+    #'Matches cutoff' is a number taken from querying the sqlite3 temp file.
+    #It's supposed to verify that the correct number of rows got indexed.
+    oneFileCounts = { 'rdata'       : rows_from_rdata,
+                      'cutoff_total': elastic_rows['matches_pval_cutoff'],
+                      'es_added'    : elastic_rows['added'],
+                      'es_skipped'  : elastic_rows['skipped'],
+                      'other'       : elastic_rows['other'] }
                        #'es_rejected' : elastic_rows['rejected'],  
                        #duplicates are rejected!
     jobLogFile.write("cleaning up file at " + workingPath +"\n")

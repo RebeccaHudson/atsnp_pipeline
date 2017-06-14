@@ -3,7 +3,8 @@
 def init():
    #If more globals are added, they must appear in this list or they 
    #will not be accessible outside of this file.
-   global SETTINGS, PROGRESS_STATES, PARENT_DIR, PARENT_DIRS
+   global SETTINGS, PROGRESS_STATES, PARENT_DIR, PARENT_DIRS, \
+          RESTRICT_BY_PVALUE,  PVALUE_CUTOFFS 
 
    #More realistic for our datasets.
    #SETTINGS = {
@@ -14,7 +15,7 @@ def init():
 
    #Numeric settings tailored for test data sets.
    SETTINGS = {
-        'chunk_count':10, 
+        'chunk_count': 2, #10, 
         'n_submit_files' : 2 #number of separate condor submit files.
    }  
    #Should match the definition in the per-job scripts;
@@ -29,12 +30,6 @@ def init():
    PARENT_DIR = '/z/Comp/kelesgroup/atsnp/JASPAR/BIGTABLES/204' #testing set.
 
 
-   #What we ultimately want.
-   #PARENT_DIRS = { 'ENCODE' : '/z/Comp/kelesgroup/atsnp/ENCODE/TABLES',
-   #                'JASPAR' : '/z/Comp/kelesgroup/atsnp/JASPAR/TABLES'
-   #              }
-
-
    #TABLES OR BIGTABLES
    set_of_data = 'BIGTABLES' #BIGTABLES is needed (vs. TABLES).
    data_root = '/z/Comp/kelesgroup/atsnp'
@@ -43,17 +38,36 @@ def init():
                   'jaspar':'/'.join([data_root,'JASPAR',set_of_data,'151'])
                  }
 
+   #to get out of SUPER test mode, remove this line
+   PARENT_DIRS['encode'] = '/z/Comp/kelesgroup/rhudson/tiny-test/JASPAR'
+ 
+
+   #If this is true; only records with pvalues <= to all of the  
+   #cutoffs below will loaded.
+   RESTRICT_BY_PVALUE = True
+   #Used to restrict which records are loaded.
+   PVALUE_CUTOFFS = { 'pval_rank': 0.3, #0.05,
+                      'pval_snp' : 0.3, #0.05,
+                      'pval_ref' : 0.3  #0.05
+                     }
+  
+    
+
+
+
 #assumes error (red)
 def print_with_color(msg, why='error'):
     end_color = "\033[1;m"
     start_color = "\033[1;33m" #default to yellow if reason is unspecified.
     if why == 'error':    
-        print "\033[1;41mSTOP" + end_color #\033[1;m"
+        print "STOP"
+        #print "\033[1;41mSTOP" + end_color #\033[1;m"
         start_color = "\033[1;31m"
     elif why == 'success': 
         start_color = "\033[1;32m" #green    
     elif why == 'warn':
-        print '\033[1;43mWARN' + end_color
+        #print "\033[1;43mWARN" + end_color
+        print "WARN" 
         pass #go with the yellow. 
     print ''.join([start_color, msg, end_color])
     
