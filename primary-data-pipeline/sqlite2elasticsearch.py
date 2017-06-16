@@ -8,6 +8,7 @@ import requests
 import os
 import zlib
 import math
+import pickle
 
 import shared_pipe
 
@@ -20,15 +21,13 @@ use_cutoffs = shared_pipe.RESTRICT_BY_PVALUE
 #SHOULD NOT CHANGE:
 sqlite_table_name = 'scores_data'
 
-
-
 """
 A script to import sqlite3 tables into Elasticsearch
 To use: give it one argument: the name of the directory to find the input files
 in with no trailling space.
  then change DRY_RUN to False
 """
-DRY_RUN = True 
+DRY_RUN = False 
 
 #name_of_db should be a valid path to a sqlite3 database
 def connect_to_sqlite_db(name_of_db):
@@ -56,20 +55,18 @@ def update_summary_counts(summary_chunk, total_summary):
 
 
 
-
 #This method took hours to write, could not make the ES bulk helper 
 #accept specific IDs on documents. Ended up using the 5/5/16 answer from:
 #http://stackoverflow.com/questions/26159949/elasticsearch-python-bulk-api-elasticsearch-py
-def parse_one_sqilte_row_into_json_data(colnames, fetched_record, elasticlog):
+def parse_one_sqilte_row_into_json_data(colnames, fetched_record, motif_ic, elasticlog):
     happy = zip(colnames, fetched_record)
     happy = dict(happy)
-
     doc = []
     meta = {}
     meta['create'] = {}
     meta['create'] ['_id'] = build_unique_id_for_es_document(happy)
-    meta['create'] ['_type'] = 'atsnp_output';  meta['create']['_index'] = 'atsnp_reduced_test'
-
+    meta['create'] ['_type'] = 'atsnp_output'
+    meta['create']['_index'] = shared_pipe.SETTINGS['index_name'] #'atsnp_reduced_test'
     happy = add_log_lik_rank(happy, elasticlog )
     happy = collapse_strand_info(happy)
     happy = translate_alleles(happy)  #can probably be ultimately omitted.
@@ -79,10 +76,15 @@ def parse_one_sqilte_row_into_json_data(colnames, fetched_record, elasticlog):
     happy = remove_fields(happy)
     happy = reduce_fields(happy)
     happy = force_offsets_to_ints(happy)
-
+    happy = append_motif_ic_to_record(happy, motif_ic)
+  
     doc = [ meta, happy ]   
     docs_as_string = json.dumps(doc[0]) + '\n' + json.dumps(doc[1]) + '\n'
     return docs_as_string 
+
+def append_motif_ic_to_record(dict_data, motif_ic_pickle):
+    dict_data['motif_ic'] = motif_ic_pickle[dict_data['motif']]
+    return dict_data
 
 #There is a chromosome called 'MT'; should this be its own thing?
 def change_chromosome_to_byte(dict_data):
@@ -221,7 +223,7 @@ def setup_query_to_pull_records():
         query += setup_cutoffs_clause()
         #append the where clause.
     query += ";"
-    print "pulling records w: " + query
+    #print "pulling records w: " + query
     return query 
 
 #Used for obtaining verification counts of data that matches our cutoffs
@@ -229,17 +231,17 @@ def setup_query_to_pull_records():
 def setup_count_query():
     query = ' '.join(["SELECT COUNT(*) FROM",sqlite_table_name,\
                      setup_cutoffs_clause(), ';'])
-    print "counting with the following query: " + query
+    #print "counting with the following query: " + query
     return query
       
 def get_count_matching_cutoffs(sqlite_cursor):
     query = setup_count_query()
     sqlite_cursor.execute(query)
     result = sqlite_cursor.fetchone()[0]
-    print "this many results within the cutoff: " + str(result)
+    #print "this many results within the cutoff: " + str(result)
     return result
  
-def process_one_file_of_input_data(path_to_file, es, elasticLog):
+def process_one_file_of_input_data(path_to_file, es, elasticLog, motif_ic):
     sqlite_file  = path_to_file 
     #sqlite_table_name = 'scores_data'
     #sqlite_cursor.execute("SELECT * FROM " + sqlite_table_name )
@@ -264,7 +266,8 @@ def process_one_file_of_input_data(path_to_file, es, elasticLog):
     while one_sqlite_record is not None:
         i += 1
         json_data =   \
-           parse_one_sqilte_row_into_json_data(colnames, one_sqlite_record, elasticLog)
+           parse_one_sqilte_row_into_json_data(colnames, one_sqlite_record, 
+                                               motif_ic, elasticLog)
         # huge amount of data printed w/ the following
         # print repr(json_data)
         #print "check that this record makes sense"
@@ -285,12 +288,22 @@ def process_one_file_of_input_data(path_to_file, es, elasticLog):
     summary = update_summary_counts(summary_chunk, summary)
     return summary 
 
+def load_motif_ic_pkl(fname):
+   with open(fname + '.pkl', 'rb') as f:
+       return pickle.load(f) 
+
 def run_single_file(filepath):
     elasticLog = open('elasticlog.txt', 'ar+')
     es = Elasticsearch(['atsnp-db1','atsnp-db2','atsnp-db3'], 
                         timeout=200, 
                         dead_timeout=100)
-    summary = process_one_file_of_input_data(filepath, es, elasticLog)
+
+    #Motif information content to include with each datum.
+    motif_ic_pickle = load_motif_ic_pkl('ic_stats') 
+
+    summary = \
+           process_one_file_of_input_data(filepath, es, 
+                                          elasticLog, motif_ic_pickle)
     rowcount = summary['added'] + summary['skipped'] + summary['other']
     elasticLog.write( "completed file: " + filepath + " with N= " + \
                       str(rowcount) + " rows of data.\n")

@@ -11,7 +11,6 @@ import subprocess
 # Breaks up the whole colletion of files into N directories.
 # Creating a seperate condor submit file for each batch of rangeSize directories
 shared_pipe.init()
-parentDir = shared_pipe.PARENT_DIR
 
 #The following code is used to ensure that directories created by this 
 #script can be deleted by other users in the group 'atsnp'.
@@ -68,7 +67,8 @@ def setupJobDirs(jaspar_or_encode, input_path):
 
     filesToCopy = ['multi_pipeline.py', 
                    'rdata2sqlite.R', 'shared_pipe.py',
-                    'sqlite2elasticsearch.py']
+                    'sqlite2elasticsearch.py',
+                    'ic_stats.pkl']
     for i in range(0, shared_pipe.SETTINGS['chunk_count']): 
         jobDir = '/'.join([jaspar_or_encode,'chunk' + str(i).zfill(2)])
         if not create_dir_or_fail(jobDir):

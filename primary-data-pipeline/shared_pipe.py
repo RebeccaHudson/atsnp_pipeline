@@ -11,44 +11,38 @@ def init():
    #     'chunk_count': 100,
    #     'n_submit_files' : 5 #number of separate condor submit files.
    #}  
-
-
    #Numeric settings tailored for test data sets.
+   DRY_RUN = False 
+
    SETTINGS = {
-        'chunk_count': 2, #10, 
-        'n_submit_files' : 2 #number of separate condor submit files.
+        'chunk_count': 10, 
+        'n_submit_files' : 2, #Number of separate condor submit files.
+        'index_name' : 'atsnp_data_test_1' 
    }  
+
    #Should match the definition in the per-job scripts;
    #they could eventually import these settings to DRY up the code.
-
    PROGRESS_STATES = { 'NOT_STARTED': 0, 
                        'IN_PROGRESS': 1,
                        'COMPLETE'   : 2  
                       } 
- 
-   #PARENT_DIR = '/z/Comp/kelesgroup/atsnp/JASPAR/BIGTABLES'
-   PARENT_DIR = '/z/Comp/kelesgroup/atsnp/JASPAR/BIGTABLES/204' #testing set.
 
-
-   #TABLES OR BIGTABLES
    set_of_data = 'BIGTABLES' #BIGTABLES is needed (vs. TABLES).
    data_root = '/z/Comp/kelesgroup/atsnp'
-   #data_root = '/z/Comp/kelesgroup/rhudson/tiny-test'  #MEGA test mode.
    PARENT_DIRS = {'encode':'/'.join([data_root,'ENCODE',set_of_data,'593']),
                   'jaspar':'/'.join([data_root,'JASPAR',set_of_data,'151'])
                  }
+   #to get out of into /out of SUPER test mode, (un)comment this line:
+   #PARENT_DIRS['encode'] = '/z/Comp/kelesgroup/rhudson/tiny-test/JASPAR'
 
-   #to get out of SUPER test mode, remove this line
-   PARENT_DIRS['encode'] = '/z/Comp/kelesgroup/rhudson/tiny-test/JASPAR'
- 
 
    #If this is true; only records with pvalues <= to all of the  
    #cutoffs below will loaded.
    RESTRICT_BY_PVALUE = True
    #Used to restrict which records are loaded.
-   PVALUE_CUTOFFS = { 'pval_rank': 0.3, #0.05,
-                      'pval_snp' : 0.3, #0.05,
-                      'pval_ref' : 0.3  #0.05
+   PVALUE_CUTOFFS = { 'pval_rank':  0.05,
+                      'pval_snp' :  0.05,
+                      'pval_ref' :  0.05
                      }
   
     
