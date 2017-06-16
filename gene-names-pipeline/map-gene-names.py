@@ -5,24 +5,26 @@ from elasticsearch import Elasticsearch, helpers
 
 DRY_RUN = False  
 #Run without indexing into Elasticsearch, in case something looks fishy.
+INDEX_NAME = 'gencode_genes_test_1'
 
 # This works in place in very short time.
 # Don't hestate to just delete the whole index and rebuild.
 def get_one_bulk_action_json(json_record):
     #index was atsnp_data
     bulkj = {
-    '_index': 'gencode_genes', #'atsnp_data',
+    '_index': INDEX_NAME, #'gencode_genes', #'atsnp_data',
     '_type' : 'gencode_gene_symbols',
     '_source':  json_record 
     }
     return bulkj
 
 def put_bulk_json_into_elasticsearch(es, action):
-    print "length of action : " + str(len(action))
+    #print "length of action : " + str(len(action))
     son = json.dumps(action)
-    #print son
-    #result = helpers.bulk(es, action, index="atsnp_data", doc_type="gencode_gene_symbols")
-    result = helpers.bulk(es, action, index="gencode_genes", doc_type="gencode_gene_symbols")
+    #index="gencode_genes",
+    result = \
+       helpers.bulk(es, action, index=INDEX_NAME,
+                    doc_type="gencode_gene_symbols")
     return result
 
 gene_map_file = 'correct-gencode-genes' 
