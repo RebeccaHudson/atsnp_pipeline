@@ -3,12 +3,18 @@ import json
 
 URL_BASE = "http://atsnp-db2:9200"
 
-TEST_MODE = True
+TEST_MODE = True 
+#False removes '_test_1' from the names of created indices.
+
 TEST_NUMBER = 1
+
+
 
 INDEX_NAMES = { 'GENE_NAMES' : 'gencode_genes',
                 'ATSNP_DATA' : 'atsnp_data',
-                'SNP_INFO'   : 'snp_info'      }
+                'SNP_INFO'   : 'snp_info', 
+                'MOTIF_DATA' : 'motif_plotting_data'
+              }
 
 def setup_index_name(which_data):
     nm = INDEX_NAMES[which_data]  
@@ -162,9 +168,32 @@ def setup_atsnp_data_index():
     setup_an_index(index_name, mapping_data, 'atsnp_output')
 
 
+
+def setup_motif_data_index():
+    index_name = setup_index_name('MOTIF_DATA')
+    mapping_data =\
+      {"properties":
+        {
+        "plotting_bits"   : #can be unjson'd for 'forward' and 'reverse'
+          {"type":"object",
+           "enabled" : False,
+          },
+        "create": 
+           {"properties":
+             {"_id": 
+                {"type":"text","fields":
+                  { "text": {"type":"text"} }
+                }
+             }
+           },
+       }}
+    setup_an_index(index_name, mapping_data, 'motif_bits')
+
+
 setup_gene_names_index()
 setup_snp_info_index()
 setup_atsnp_data_index()
+setup_motif_data_index()
 
 print "Done setting up test indices"
 
