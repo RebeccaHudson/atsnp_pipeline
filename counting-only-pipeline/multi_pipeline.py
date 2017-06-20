@@ -22,22 +22,6 @@ pStates = { 'NOT_STARTED' : 0,
 #parentDir = '/z/Comp/kelesgroup/atsnp/ENCODE/BIGTABLES'
 
 
-#if the lockfile at the specified path exists, 
-#wait for it to go away.
-def getLockOnFile(atPath):
-    while True:
-        if not os.path.isfile(atPath):
-           break 
-        else: 
-           readLock = open(atPath, "r")
-           workingHost = readLock.read()
-           print "lockfile at " + atPath + \
-                 " is still there. host=" + workingHost
-           readLock.close()
-           time.sleep(10)
-    createLockfile(atPath)
-
-
 #used only when there's not yet a progress file
 def writeProgressFile(openFile):
     fileCount = 0
@@ -166,14 +150,6 @@ def processOneFile(pathToFile):
     oneFileCounts = run_single_file(sqliteFile)
     oneFileCounts.update({'rdata' : rows_from_rdata })
     #TODO: change 'run_single_file' so it specifically reads and handles the 
-    #whole business of counting.
-    #oneFileCounts = { 'rdata'    :  rows_from_rdata,
-    #                  'es_added' :  elastic_rows['added'],
-    #                  'es_rejected' : elastic_rows['rejected'],  
-    #                  'other'      : elastic_rows['other'] }
-                       #duplicates are rejected!
-    
-    #jobLogFile = open('joblog.txt', 'ar+')
     writeToJobLog("cleaning up file at " + workingPath +"\n")
     writeToJobLog("cleaning up sqlite file at " + sqliteFile +"\n")
     os.remove(sqliteFile)
