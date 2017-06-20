@@ -25,9 +25,9 @@ sqlite_table_name = 'scores_data'
 A script to import sqlite3 tables into Elasticsearch
 To use: give it one argument: the name of the directory to find the input files
 in with no trailling space.
- then change DRY_RUN to False
+ then (in the shared_pipe settings file) change DRY_RUN to False.
 """
-DRY_RUN = False 
+DRY_RUN = shared_pipe.DRY_RUN #False 
 
 #name_of_db should be a valid path to a sqlite3 database
 def connect_to_sqlite_db(name_of_db):
