@@ -3,7 +3,7 @@ import shutil
 import os.path
 import re
 import shared_pipe
-from shared_pipe import WhichTFLibs, print_with_color
+from shared_pipe import WhichTFLibs, print_with_color, print_error
 import sys
 from subprocess import call
 import subprocess
@@ -46,29 +46,36 @@ def create_dir_or_fail(dirname):
         # this is reported at least 3 times.. print msg
         return False
 
+
+
+#will report if the chunk sizes are WAY off or unworkable.
+def validate_chunk_settings(count_of_files):
+    #should be able to accept chunk_count of 1
+    if shared_pipe.SETTINGS['chunk_count'] < 1:
+        print_error("chunk count is less than 1")
+ 
+    if count_of_files / (shared_pipe.SETTINGS['chunk_count'] - 1) < 1:
+        msg = "\nCalculated chunk_size < 1. Reduce the chunk count." + \
+              "(N = " + str(count_of_files) + " files.)\n" 
+        print_error(msg)
+     
+
+
 #Copies source for all per-job scripts and segments of the overall list 
 #of files to transfer.
 def setupJobDirs(jaspar_or_encode, input_path):
-    #msg  = ' '.join(['Directory',jaspar_or_encode,'already exists.',
-    #                'Delete this directory to use this script.'])
-    #Don't proceed in creating directories if the parent' isn't in.
-    #if not create_dir_or_fail(jaspar_or_encode, msg):
     if not create_dir_or_fail(jaspar_or_encode):
-        #msg =  "Not setting up anything for " + jaspar_or_encode + \
-        #      " because it already exists."
-        #print_with_color(msg, why='warn')
-        #Don't need to repeatedly report the same darn error.
         return False
 
     #Message to fail with if some interesting data may be left over.
     #You have to go and manually delete this data. This script won't.
     msg = " ".join(["Directory already exists.",
               "delete all chunk<N> directories to use this script."])
-
     filesToCopy = ['multi_pipeline.py', 
                    'rdata2sqlite.R', 'shared_pipe.py',
                     'sqlite2elasticsearch.py',
                     'ic_stats.pkl']
+
     for i in range(0, shared_pipe.SETTINGS['chunk_count']): 
         jobDir = '/'.join([jaspar_or_encode,'chunk' + str(i).zfill(2)])
         if not create_dir_or_fail(jobDir):
@@ -76,10 +83,12 @@ def setupJobDirs(jaspar_or_encode, input_path):
         for oneFile in filesToCopy:
             shutil.copyfile(oneFile, jobDir + "/" + oneFile)
 
-    print "getting file list at this path " + input_path
+    #print "getting file list at this path " + input_path
     fList = get_file_list(input_path)    
+    validate_chunk_settings(len(fList))
     chunk_size = len(fList) /    \
                 (shared_pipe.SETTINGS['chunk_count'] - 1)
+    print "chunk_size : " + str(chunk_size)
     progressFile = None 
     chunk = 0 
     print "how many files? " + str(len(fList))
