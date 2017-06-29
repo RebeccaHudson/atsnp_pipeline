@@ -55,7 +55,7 @@ To Load data into the Elasticsearch Cluster:
                refer to README.txt in this directory for instructions.
 
          b. Load the motif plotting information.
-               cd motif-plotting 
+               cd motif-plotting-pipeline
                refer to README.txt in this directory for instructions.
  
          b. Load the SNP info (sequence data):
