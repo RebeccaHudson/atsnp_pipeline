@@ -1,6 +1,4 @@
 import os, sys, shutil
-#import sys
-#import shutil
 import os.path
 import socket
 import shared_pipe
@@ -102,7 +100,17 @@ def show_which_batches_are_done(batches):
             msg += " incomplete."
         print msg
     return doneBatches
-   
+  
+
+def writeToFileAndPrint(msg, fileToWrite):
+    if type(msg).__name__ == 'list':
+        fileToWrite.writelines(msg)
+        for x in msg:
+            print x
+    else:
+        print msg
+        fileToWrite.write(msg)
+ 
 #This is assuming that we are running the submit files in order.
 #(Dangerous assumption: working now on a simple fix.)
 def checkAllDirs(parent):
@@ -127,7 +135,9 @@ def checkAllDirs(parent):
         dirResults = checkOneDirectory(dirName)
         overallSummary = update_overall_counts(overallSummary, 
                                                dirResults['summary'])
-        overallProgressFile.writelines(dirResults['fileLines'])
+        #writeToFileAndPrint(dirResults['fileLines'], overallProgressFile)
+
+        #overallProgressFile.writelines(dirResults['fileLines'])
         k += 1 #This will get reset once per batch.
         if checkForCompleteDir(dirResults['summary']):
             completedDirs += 1 
@@ -140,14 +150,16 @@ def checkAllDirs(parent):
             k = 0; completeDirsForBatch = 0; whichBatch += 1 
 
     how_many_complete_batches = show_which_batches_are_done(batches)
-    print "\tcompleted " + str(completedDirs) + " out of " + \
-          str(shared_pipe.SETTINGS['chunk_count']) + " directories."
-    print "\tcompleted " + str(how_many_complete_batches) + " out of " +\
-          str(shared_pipe.SETTINGS['n_submit_files']) + " submit files."
+    writeToFileAndPrint( "\tcompleted " + str(completedDirs) + " out of " + \
+          str(shared_pipe.SETTINGS['chunk_count']) + " directories.",        \
+         overallProgressFile)
+    writeToFileAndPrint("\tcompleted " + str(how_many_complete_batches) + " out of " +\
+          str(shared_pipe.SETTINGS['n_submit_files']) + " submit files.",             \
+          overallProgressFile)
 
     #pretty sure that we should use the submit file called 'completedChunks' next.
-    overallProgressFile.write(' summary for all active jobs:')
-    overallProgressFile.write(str(overallSummary))
+    writeToFileAndPrint('  summary for all active jobs:' ,  overallProgressFile)
+    writeToFileAndPrint(str(overallSummary) , overallProgressFile)
     overallProgressFile.close()
 
 def clear_any_existing_progress_file():
