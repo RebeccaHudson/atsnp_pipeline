@@ -8,8 +8,6 @@ TEST_MODE = True
 
 TEST_NUMBER = 1
 
-
-
 INDEX_NAMES = { 'GENE_NAMES' : 'gencode_genes',
                 'ATSNP_DATA' : 'atsnp_data',
                 'SNP_INFO'   : 'snp_info', 
@@ -23,9 +21,13 @@ def setup_index_name(which_data):
     #print "using index name: " + nm
     return nm
 
-def setup_an_index(index_name, mapping_data, data_type): 
+def setup_an_index(index_name, mapping_data, data_type, settings=None): 
     url = '/'.join([URL_BASE, index_name])
-    r = requests.put(url)
+    r = None
+    if settings is None:
+        r = requests.put(url)
+    else:
+        r = requests.put(url, data = json.dumps(settings))
     #print "r.status " +  str(r.status_code )
     if r.status_code != 200:
         print "Failed to create index. " + index_name + \
@@ -165,7 +167,15 @@ def setup_atsnp_data_index():
         "snpid":
           {"type":"long"}
        }}
-    setup_an_index(index_name, mapping_data, 'atsnp_output')
+
+    #The default shard and replica count is OK for all others.
+    settings =  \
+       {"settings" : {
+           "number_of_shards" : 50,
+           "number_of_replicas" : 2
+          } 
+       }
+    setup_an_index(index_name, mapping_data, 'atsnp_output', settings)
 
 
 
@@ -188,7 +198,6 @@ def setup_motif_data_index():
            },
        }}
     setup_an_index(index_name, mapping_data, 'motif_bits')
-
 
 setup_gene_names_index()
 setup_snp_info_index()
