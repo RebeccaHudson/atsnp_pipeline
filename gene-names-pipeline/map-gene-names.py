@@ -6,6 +6,7 @@ from elasticsearch import Elasticsearch, helpers
 DRY_RUN = False  
 #Run without indexing into Elasticsearch, in case something looks fishy.
 INDEX_NAME = 'gencode_genes_test_1'
+ELASTIC_URLS = [ 'atsnp-db1', 'atsnp-db2', 'atsnp-db3']
 
 # This works in place in very short time.
 # Don't hestate to just delete the whole index and rebuild.
@@ -31,7 +32,7 @@ gene_map_file = 'correct-gencode-genes'
 with open(gene_map_file) as f:
     lines = f.readlines()
 
-es = Elasticsearch('atsnp-db2')
+es = Elasticsearch(ELASTIC_URLS)
 
 action = []
 es_chunk_size = 150 
