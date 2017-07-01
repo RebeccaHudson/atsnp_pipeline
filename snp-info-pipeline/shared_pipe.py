@@ -1,7 +1,8 @@
 #shared_pipe.py
 #stuff shared by all the pipeline scripts.
 def init():
-    global SETTINGS, PROGRESS_STATES, SNP_INFO_PARENT_DIR, DRY_RUN
+    global SETTINGS, PROGRESS_STATES, SNP_INFO_PARENT_DIR, DRY_RUN, \
+           CLUSTER_URLS
 
     DRY_RUN = False    #If trye, don't put data into Elasticsearch.
 
@@ -20,3 +21,5 @@ def init():
                        } 
 
     SNP_INFO_PARENT_DIR = '/z/Comp/kelesgroup/atsnp/SNP_INFO'
+
+    CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3']

@@ -122,7 +122,7 @@ def process_one_file_of_input_data(path_to_file, es, elasticLog):
 
 def run_single_file(filepath):
     elasticLog = open('elasticlog.txt', 'ar+')
-    es = Elasticsearch(['atsnp-db1','atsnp-db2','atsnp-db3'], 
+    es = Elasticsearch(shared_pipe.CLUSTER_URLS, 
                         timeout=200, 
                         dead_timeout=100)
     summary = process_one_file_of_input_data(filepath, es, elasticLog)
