@@ -8,8 +8,8 @@ from elasticsearch import Elasticsearch, helpers
 
 DRY_RUN = False  
 #Enables a run without indexing into Elasticsearch, in case something looks fishy.
-
-INDEX_NAME = 'motif_plotting_data'
+CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3']
+INDEX_NAME = 'motif_plotting_data_test_1'
 DOC_TYPE = 'motif_bits'
 
 motif_data_files = ['JASPARmotifs.json', 'ENCODEmotifs.json']
@@ -51,7 +51,7 @@ def load_motifs_from_one_file(motif_data):
        es.index(index=INDEX_NAME, doc_type=DOC_TYPE, 
                 id=j_dict['id'], body=j_dict['motif_data'])
    
-es = Elasticsearch('atsnp-db2')
+es = Elasticsearch(CLUSTER_URLS)
 
 for file_name in motif_data_files:
     with open(file_name) as f:
