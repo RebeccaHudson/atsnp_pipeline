@@ -243,15 +243,10 @@ def get_count_matching_cutoffs(sqlite_cursor):
  
 def process_one_file_of_input_data(path_to_file, es, elasticLog, motif_ic):
     sqlite_file  = path_to_file 
-    #sqlite_table_name = 'scores_data'
-    #sqlite_cursor.execute("SELECT * FROM " + sqlite_table_name )
-
-    #get counts for sqlite
     sqlite_cursor = connect_to_sqlite_db(sqlite_file)
   
-    count_matching_cutoff = 0  #different if we are using cutoffs
+    count_matching_cutoff = 0
     if use_cutoffs:
-        #TODO: Must handle this somewhere.
         count_matching_cutoff = get_count_matching_cutoffs(sqlite_cursor)
      
     sqlite_cursor.execute(setup_query_to_pull_records())
@@ -259,7 +254,7 @@ def process_one_file_of_input_data(path_to_file, es, elasticLog, motif_ic):
     summary = { 'added' : 0, 'skipped': 0, 'other': 0, 
                 'matches_pval_cutoff': count_matching_cutoff }
     i = 0
-    bulk_loading_chunk_size = 20000  #TODO: crank up this chunk size
+    bulk_loading_chunk_size = 20000 
     one_sqlite_record = sqlite_cursor.fetchone() 
     #maybe worth using cursor.fetchmany(size)?
     actions = []
@@ -294,9 +289,9 @@ def load_motif_ic_pkl(fname):
 
 def run_single_file(filepath):
     elasticLog = open('elasticlog.txt', 'ar+')
-    es = Elasticsearch(['atsnp-db1','atsnp-db2','atsnp-db3'], 
-                        timeout=200, 
-                        dead_timeout=100)
+    es = Elasticsearch(shared_pipe.CLUSTER_URLS,
+                       timeout=200, 
+                       dead_timeout=100)
 
     #Motif information content to include with each datum.
     motif_ic_pickle = load_motif_ic_pkl('ic_stats') 

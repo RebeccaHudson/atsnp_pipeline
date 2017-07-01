@@ -1,24 +1,24 @@
 #shared_pipe.py
-#stuff shared by all the pipeline scripts.
+#Variables shared by several scripts in primary-data-pipeline.
+#All of the 'test' values are at the bottom of this method.
+
 def init():
    #If more globals are added, they must appear in this list or they 
    #will not be accessible outside of this file.
    global SETTINGS, PROGRESS_STATES, PARENT_DIR, PARENT_DIRS, \
-          RESTRICT_BY_PVALUE,  PVALUE_CUTOFFS 
+          RESTRICT_BY_PVALUE,  PVALUE_CUTOFFS , CLUSTER_URLS, DRY_RUN
 
    #More realistic for our datasets.
-   #SETTINGS = {
-   #     'chunk_count': 100,
-   #     'n_submit_files' : 5 #number of separate condor submit files.
-   #}  
-   #Numeric settings tailored for test data sets.
-   DRY_RUN = False 
-
    SETTINGS = {
-        'chunk_count': 10, 
-        'n_submit_files' : 2, #Number of separate condor submit files.
+        'chunk_count': 100,
+        'n_submit_files' : 15, #number of separate condor submit files.
         'index_name' : 'atsnp_data_test_1' 
    }  
+
+
+   CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3'] 
+
+   DRY_RUN = False 
 
    #Should match the definition in the per-job scripts;
    #they could eventually import these settings to DRY up the code.
@@ -27,14 +27,12 @@ def init():
                        'COMPLETE'   : 2  
                       } 
 
-   set_of_data = 'BIGTABLES' #BIGTABLES is needed (vs. TABLES).
+   set_of_data = 'BIGTABLES'
    data_root = '/z/Comp/kelesgroup/atsnp'
-   PARENT_DIRS = {'encode':'/'.join([data_root,'ENCODE',set_of_data,'593']),
-                  'jaspar':'/'.join([data_root,'JASPAR',set_of_data,'151'])
-                 }
-   #to get out of into /out of SUPER test mode, (un)comment this line:
-   #PARENT_DIRS['encode'] = '/z/Comp/kelesgroup/rhudson/tiny-test/JASPAR'
 
+   PARENT_DIRS = {'encode':'/'.join([data_root,'ENCODE',set_of_data]),
+                  'jaspar':'/'.join([data_root,'JASPAR',set_of_data])
+                 }
 
    #If this is true; only records with pvalues <= to all of the  
    #cutoffs below will loaded.
@@ -44,10 +42,23 @@ def init():
                       'pval_snp' :  0.05,
                       'pval_ref' :  0.05
                      }
-  
+   #TEST_VALUES :Numeric settings tailored for test data sets.
+   #PARENT_DIRS = {'encode':'/'.join([data_root,'ENCODE',set_of_data,'593']),
+   #               'jaspar':'/'.join([data_root,'JASPAR',set_of_data,'151'])
+   #              }
+   #to get out of into /out of SUPER test mode, (un)comment this line:
+   #PARENT_DIRS['encode'] = '/z/Comp/kelesgroup/rhudson/tiny-test/JASPAR'
+   #SETTINGS = {
+   #     'chunk_count': 30, 
+   #     'n_submit_files' : 10, #Number of separate condor submit files.
+   #     'index_name' : 'atsnp_data' 
+   #}  
     
-
-
+def print_error(msg):
+    print " ************************** " + \
+          msg + \
+          " ************************** "
+    exit(1)
 
 #assumes error (red)
 def print_with_color(msg, why='error'):
@@ -97,5 +108,4 @@ class WhichTFLibs:
                 exit(1)
             run_these = self.valid_args 
         return run_these
-
 
