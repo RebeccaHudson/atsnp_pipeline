@@ -11,7 +11,7 @@ def init():
    #More realistic for our datasets.
    SETTINGS = {
         'chunk_count': 100,
-        'n_submit_files' : 15, #number of separate condor submit files.
+        'n_submit_files' : 10, #number of separate condor submit files.
         'index_name' : 'atsnp_data_test_1' 
    }  
 
