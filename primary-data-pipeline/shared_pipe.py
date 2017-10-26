@@ -12,11 +12,11 @@ def init():
    SETTINGS = {
         'chunk_count': 100,
         'n_submit_files' : 10, #number of separate condor submit files.
-        'index_name' : 'atsnp_data_test_1' 
+        'index_name' : 'atsnp_data' #'index_name' : 'atsnp_data_test_1' 
    }  
 
-
-   CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3'] 
+   #old cluster urls: CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3'] 
+   CLUSTER_URLS = ['db05']
 
    DRY_RUN = False 
 

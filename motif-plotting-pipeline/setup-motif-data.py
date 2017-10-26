@@ -8,8 +8,11 @@ from elasticsearch import Elasticsearch, helpers
 
 DRY_RUN = False  
 #Enables a run without indexing into Elasticsearch, in case something looks fishy.
-CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3']
-INDEX_NAME = 'motif_plotting_data_test_1'
+CLUSTER_URLS = ['db05']
+#old cluster: CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3']
+
+#INDEX_NAME = 'motif_plotting_data_test_1'
+INDEX_NAME = 'motif_plotting_data'
 DOC_TYPE = 'motif_bits'
 
 motif_data_files = ['JASPARmotifs.json', 'ENCODEmotifs.json']

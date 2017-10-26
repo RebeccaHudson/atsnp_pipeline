@@ -5,15 +5,21 @@ from elasticsearch import Elasticsearch, helpers
 
 DRY_RUN = False  
 #Run without indexing into Elasticsearch, in case something looks fishy.
-INDEX_NAME = 'gencode_genes_test_1'
-ELASTIC_URLS = [ 'atsnp-db1', 'atsnp-db2', 'atsnp-db3']
+
+#For test mode: INDEX_NAME = 'gencode_genes_test_1'
+INDEX_NAME = 'gencode_genes'
+
+#for old cluster: ELASTIC_URLS = [ 'atsnp-db1', 'atsnp-db2', 'atsnp-db3']
+#No need to round-robin this anymore.
+ELASTIC_URLS = [ 'db05']
+
 
 # This works in place in very short time.
 # Don't hestate to just delete the whole index and rebuild.
 def get_one_bulk_action_json(json_record):
     #index was atsnp_data
     bulkj = {
-    '_index': INDEX_NAME, #'gencode_genes', #'atsnp_data',
+    '_index': INDEX_NAME,
     '_type' : 'gencode_gene_symbols',
     '_source':  json_record 
     }

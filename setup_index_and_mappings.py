@@ -1,9 +1,13 @@
 import requests
 import json
+#url for old cluster: URL_BASE = "http://atsnp-db2:9200"
 
-URL_BASE = "http://atsnp-db2:9200"
+#url for new cluster.
+URL_BASE = "http://db05:9200"
 
-TEST_MODE = True 
+
+
+TEST_MODE = False 
 #False removes '_test_1' from the names of created indices.
 
 TEST_NUMBER = 1
