@@ -6,14 +6,19 @@ def init():
    #If more globals are added, they must appear in this list or they 
    #will not be accessible outside of this file.
    global SETTINGS, PROGRESS_STATES, PARENT_DIR, PARENT_DIRS, \
-          RESTRICT_BY_PVALUE,  PVALUE_CUTOFFS , CLUSTER_URLS, DRY_RUN
+          RESTRICT_BY_PVALUE,  PVALUE_CUTOFFS , CLUSTER_URLS, DRY_RUN, \
+          FILE_PATTERN
 
    #More realistic for our datasets.
    SETTINGS = {
-        'chunk_count': 20,
+        'chunk_count': 50,
         'n_submit_files' : 2, #number of separate condor submit files.
         'index_name' : 'atsnp_data' #'index_name' : 'atsnp_data_test_1' 
    }  
+
+   #All of the data files processed will match this regular expression.
+   FILE_PATTERN = "bigdb_\d+_\d+.*RData$"   #for actual data.
+
 
    #old cluster urls: CLUSTER_URLS = ['atsnp-db1','atsnp-db2','atsnp-db3'] 
    CLUSTER_URLS = ['master00']

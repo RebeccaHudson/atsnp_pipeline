@@ -5,14 +5,14 @@ import re
 import socket
 import subprocess
 import string
-from sqlite2elasticsearch import run_single_file
+from process_and_index import process_data_from_one_file 
 import shared_pipe
+import rpy2.robjects as robjects
 
 shared_pipe.init()
 pStates = shared_pipe.PROGRESS_STATES
 cutoffs = shared_pipe.PVALUE_CUTOFFS
 use_cutoffs = shared_pipe.RESTRICT_BY_PVALUE
-
 
 #which_lib = os.path.abspath('..').split('/')[-1] #must be either 'encode' or 'jaspar'
 #parentDir = shared_pipe.PARENT_DIRS[which_lib]
@@ -31,22 +31,26 @@ use_cutoffs = shared_pipe.RESTRICT_BY_PVALUE
 #              openFile.write(oneLine)
 #    #print "fileCount: " + str(fileCount)
 
+#Moved here from sqlite2elasticsearch.py
+def setup_cutoffs_clause(name_of_data_frame):
+    clause_parts = []
+    for pvalue in cutoffs.keys():
+        clause_part = ''.join(['(', name_of_data_frame, '$', pvalue, \
+                         '<=', str(cutoffs[pvalue]), ')' ])
+        clause_parts.append(clause_part)
+    clause = ''.join(['[', '|'.join(clause_parts), ',]'])
+    #print "does this make sense rt now? " + clause
+    return clause 
 
-
-#if this function fails, the R script's output has been changed  
-def siftROutput(rResult):
-    rowCount = None
-    outfileName = None
-    for line in rResult.split("\n"):
-       if re.search(r'output_file', line):
-           outfileName = line.split()[2]
-           outfileName = outfileName.translate(None, '"')
-       elif re.search(r'N=', line):
-           rowCount = int(re.findall(r'(\d+)', line)[1])
-    #print "N rows in R data file :  " + str(rowCount)
-    #print "output filename : " + outfileName
-    return { "row_count" : rowCount,
-             "outfile_name" : outfileName }
+#Moved here from sqlite2elasticsearch.py
+#use cutoffs will matter for this.
+def setup_query_to_pull_records(name_of_data_frame):
+    query = name_of_data_frame
+    if use_cutoffs:  #setup at the top of the file.
+        query += setup_cutoffs_clause(name_of_data_frame)
+        #append the where clause.
+    print "pulling records w: " + query
+    return query
 
 #update the progress file to indicate what work is being done.
 def analyzeProgressFile(progPath):
@@ -107,7 +111,6 @@ def markOneFileAsComplete(progPath, pathToFile, allCounts, jobLogFile):
    tempFilePath  = progPath + socket.gethostname() + '.tmp'
    tempFile = open(tempFilePath ,'w')
    progFile = open(progPath,  'r')
-
    #the text to record the numeric counts from processing each file.
    #print "in markOneFileAsComplete."
    #print "allCounts before calling buildLineForCompletedFile: " + repr(allCounts)
@@ -129,8 +132,11 @@ def markOneFileAsComplete(progPath, pathToFile, allCounts, jobLogFile):
 #processing includes the following:
 # 1. select a file to work on. 
 # 2. copy the selected file to /scratch/atsnp-pipeline
+#
+#    replace this step
 # 3. run the R script to convert /scratch/atsnp-pipeline/Rdatafile
 #    into /scratch/atsnp-pipeline/sqliteFile
+#
 # 4. run another script that sucks up the contents of the SQLite file into ES.
 # 5. mark that file as DONE and continue through the loop
 def processOneFile(pathToFile, jobLogFile):
@@ -140,45 +146,46 @@ def processOneFile(pathToFile, jobLogFile):
     rDataFile = os.path.basename(pathToFile)
 
     workingPath = os.path.join(localWorkingDir, rDataFile)
-    #print "workingPath " + workingPath
-    #if not os.path.exists(workingPath):
     jobLogFile.write( "copying file : " + pathToFile + " to : " + \
                        workingPath + "\n")
     shutil.copy(pathToFile, workingPath)
 
-    sqliteFile = os.path.splitext(rDataFile)[0] + '.db'
-    #print "sqliteFile " + sqliteFile
-    sqliteFilePath = os.path.join(localWorkingDir, sqliteFile )
-    #print "sqliteFilePath " + sqliteFilePath
-    #skip creating the file if its already here.
-    #if not os.path.exists(sqliteFilePath):
-    cmd = " ".join(['/s/bin/Rscript', 'rdata2sqlite.R', 
-                    workingPath, localWorkingDir])
-    result = subprocess.check_output(cmd, shell=True)
-    r_output = siftROutput(result)
-    rows_from_rdata = r_output["row_count"]
-    sqliteFile =  r_output["outfile_name"]
-    #else:
-    #    print "hooray, skipped re-creating the sqilte file." 
+    #This is where to open the file in rpy2!
+    #I think this is for full ones: name_of_data = 'atsnp.bigtables'
+    #from testing: name_of_data_frame = 'atsnp.scraptables'
+    name_of_data_frame = 'atsnp.bigtables'
 
-    #print "sqliteFile now " + sqliteFile
-    jobLogFile.write("rows processed by RScript: " + str(rows_from_rdata)+"\n")
+    #rd = robjects.r['load']('scrap-bigtables.RData')
+    print "path to file: " + pathToFile
+    rd = robjects.r['load'](pathToFile)
 
-    elastic_rows = run_single_file(sqliteFile)
-    #print "elastic_rows: " + repr(elastic_rows)
+    #all_rows = robjects.r(name_of_data)
+    rows_from_rdata = robjects.r('nrow(' + name_of_data_frame + ')')[0]
+    query_to_pull_records = 'records_to_use = ' \
+                               + setup_query_to_pull_records(name_of_data_frame)
+    robjects.r(query_to_pull_records)  #Assign 'records_to_use' from within R.
+    rows_matching_cutoff = robjects.r('nrow(records_to_use)')[0]
+    all_data_within_cutoff = robjects.r('records_to_use') #what's getting handed off.
+    headers = robjects.r('names(' + name_of_data_frame + ')')
 
+    jobLogFile.write("rows pulled by rpy2 from RData: " + str(rows_from_rdata)+"\n")
+
+    #This should hand off the data itself.
+    elastic_rows = \
+      process_data_from_one_file(all_data_within_cutoff, headers)
+
+    print "elastic rows " + str(elastic_rows)
     #'Matches cutoff' is a number taken from querying the sqlite3 temp file.
     #It's supposed to verify that the correct number of rows got indexed.
     oneFileCounts = { 'rdata'       : rows_from_rdata,
-                      'cutoff_total': elastic_rows['matches_pval_cutoff'],
+                      'cutoff_total': rows_matching_cutoff,
                       'es_added'    : elastic_rows['added'],
                       'es_skipped'  : elastic_rows['skipped'],
                       'other'       : elastic_rows['other'] }
+                       #'cutoff_total': elastic_rows['matches_pval_cutoff'],
                        #'es_rejected' : elastic_rows['rejected'],  
                        #duplicates are rejected!
     jobLogFile.write("cleaning up file at " + workingPath +"\n")
-    jobLogFile.write("cleaning up sqlite file at " + sqliteFile +"\n")
-    os.remove(sqliteFile)
     os.remove(workingPath)
     return oneFileCounts  #summary contanis 'added' and 'rejected' keys
  
@@ -202,6 +209,7 @@ while filesStillToProcess:
             shutil.rmtree(localWorkingDir)
     else:
         jobLogFile.write("file to process" + progressData['fileToProcess'] + "\n")
+        #This is where this will run:
         results = processOneFile(progressData['fileToProcess'], jobLogFile)
         markOneFileAsComplete(pathToProg, 
                               progressData['fileToProcess'],

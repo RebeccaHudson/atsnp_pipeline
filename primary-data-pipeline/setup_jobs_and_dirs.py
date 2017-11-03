@@ -1,4 +1,4 @@
-import os, grp
+import os, grp, math
 import shutil
 import os.path
 import re
@@ -27,12 +27,15 @@ if get_effective_group() != 'atsnp':
 
 
 def get_file_list(path):
+   file_pattern = shared_pipe.FILE_PATTERN
    fileCount = 0 
    fList = [] 
    for dirName, subdirList, fileList in os.walk(parentDir):
        for fname in sorted(fileList): 
-            if re.match("bigdb_\d+_\d+.*RData$", fname):
-            #if re.match("db_\d+_\d+.*RData$", fname):
+            #TODO, switch back: (parametrize)
+            #if re.match("bigdb_\d+_\d+.*RData$", fname):
+            #if re.match(".*bigtables.*RData$", fname):
+            if re.match(file_pattern, fname):
               fileCount += 1
               fpath = "/".join([dirName, fname])
               fList.append(fpath)
@@ -53,8 +56,10 @@ def validate_chunk_settings(count_of_files):
     #should be able to accept chunk_count of 1
     if shared_pipe.SETTINGS['chunk_count'] < 1:
         print_error("chunk count is less than 1")
- 
-    if count_of_files / (shared_pipe.SETTINGS['chunk_count'] - 1) < 1:
+    print "count_of_files " + str(count_of_files)
+    print "chunk_count" + str(shared_pipe.SETTINGS['chunk_count'])
+    #if count_of_files / (shared_pipe.SETTINGS['chunk_count'] - 1) < 1:
+    if count_of_files / (shared_pipe.SETTINGS['chunk_count']) < 1:
         msg = "\nCalculated chunk_size < 1. Reduce the chunk count." + \
               "(N = " + str(count_of_files) + " files.)\n" 
         print_error(msg)
@@ -72,9 +77,10 @@ def setupJobDirs(jaspar_or_encode, input_path):
     msg = " ".join(["Directory already exists.",
               "delete all chunk<N> directories to use this script."])
     filesToCopy = ['multi_pipeline.py', 
-                   'rdata2sqlite.R', 'shared_pipe.py',
-                    'sqlite2elasticsearch.py',
-                    'ic_stats.pkl']
+                   'shared_pipe.py',
+                   'export_and_run.sh',
+                   'process_and_index.py',
+                   'ic_stats.pkl']
 
     for i in range(0, shared_pipe.SETTINGS['chunk_count']): 
         jobDir = '/'.join([jaspar_or_encode,'chunk' + str(i).zfill(2)])
@@ -86,9 +92,15 @@ def setupJobDirs(jaspar_or_encode, input_path):
     #print "getting file list at this path " + input_path
     fList = get_file_list(input_path)    
     validate_chunk_settings(len(fList))
-    chunk_size = len(fList) /    \
-                (shared_pipe.SETTINGS['chunk_count'] - 1)
+    #chunk_size = len(fList) /    \
+    #            (shared_pipe.SETTINGS['chunk_count'] - 1)
+    #TODO: look closely at cases for this.
+    chunk_size = int(math.ceil(
+                   float(len(fList)) /    \
+                   float((shared_pipe.SETTINGS['chunk_count'])) \
+                 ))
     print "chunk_size : " + str(chunk_size)
+
     progressFile = None 
     chunk = 0 
     print "how many files? " + str(len(fList))
