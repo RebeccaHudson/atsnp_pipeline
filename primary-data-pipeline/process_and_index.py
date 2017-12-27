@@ -283,10 +283,12 @@ def process_one_file_of_input_data(all_rows, headers, es, elasticLog, motif_ic):
             summary_chunk = put_bulk_json_into_elasticsearch(es, actions, elasticLog)
             summary = update_summary_counts(summary_chunk, summary)
             actions = []
-    elasticLog.write("placing the last " + str(len(actions)) + \
-                     " rows from file into ES.\n")
-    summary_chunk = put_bulk_json_into_elasticsearch(es, actions, elasticLog)
-    summary = update_summary_counts(summary_chunk, summary)
+    #Catch the case when a file contains N % chunkSize == 0 records.
+    if len(actions) > 0:
+        elasticLog.write("placing the last " + str(len(actions)) + \
+                         " rows from file into ES.\n")
+        summary_chunk = put_bulk_json_into_elasticsearch(es, actions, elasticLog)
+        summary = update_summary_counts(summary_chunk, summary)
     return summary 
     #The original logic down there:
     #while one_sqlite_record is not None:
